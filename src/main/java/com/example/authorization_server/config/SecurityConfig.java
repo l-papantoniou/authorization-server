@@ -10,7 +10,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -33,10 +32,7 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import com.nimbusds.jose.jwk.source.JWKSource;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -51,26 +47,30 @@ public class SecurityConfig {
 
 
     /**
-     * SCENARIO 1 & 2: Authorization Server Security Filter Chain
-     * Handles OAuth2/OIDC endpoints for both user and application authentication
+     * Filter chain for Oauth2 requests
      */
     @Bean
     @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+
+        // Step 1: Apply OAuth 2.0 security for specific endpoints
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
+        // Step 2: Enable OpenID connect
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                 .oidc(Customizer.withDefaults());
 
+        // Step 3: Redirect unauthenticated users to login
         http.exceptionHandling(exceptions -> exceptions
-                        .defaultAuthenticationEntryPointFor(
-                                new LoginUrlAuthenticationEntryPoint("/login"),
-                                new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
-                        )
-                )
-                .oauth2ResourceServer(resourceServer -> resourceServer
-                        .jwt(Customizer.withDefaults())
-                );
+                .defaultAuthenticationEntryPointFor(
+                        new LoginUrlAuthenticationEntryPoint("/login"),
+                        new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
+                ));
+
+        // Step 4: Validate JWT tokens for protected endpoints
+        http.oauth2ResourceServer(resourceServer -> resourceServer
+                .jwt(Customizer.withDefaults())
+        );
 
         return http.build();
     }
@@ -124,7 +124,7 @@ public class SecurityConfig {
     /**
      * SCENARIO 1 & 2: Registered Client Repository
      * Defines OAuth2 clients (applications) that can request tokens
-     *
+     * <p>
      * CLIENT 1: For users to get tokens (Password Grant)
      * CLIENT 2: For applications to get tokens (Client Credentials Grant)
      */
