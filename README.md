@@ -95,37 +95,7 @@ authorization-server/
 
 ## 🔐 Authentication Scenarios
 
-### Scenario 1: User Authentication (Password Grant)
-
-**Use Case**: A user authenticates with username and password to get a JWT token.
-
-**Registered Users**:
-| Username | Password | Role |
-|----------|----------|------|
-| john.doe | userpass123 | USER |
-| admin | adminpass123 | USER, ADMIN |
-| alice | alicepass123 | USER |
-
-**Client Configuration**:
-- **Client ID**: `user-client`
-- **Client Secret**: `user-client-secret`
-- **Grant Types**: password, refresh_token
-- **Scopes**: openid, profile, email, read, write
-- **Access Token Lifetime**: 30 minutes
-- **Refresh Token Lifetime**: 8 hours
-
-**Example Request**:
-```bash
-curl -X POST http://localhost:9000/oauth2/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -u user-client:user-client-secret \
-  -d "grant_type=password" \
-  -d "username=john.doe" \
-  -d "password=userpass123" \
-  -d "scope=openid profile read write"
-```
-
-### Scenario 2: Application Authentication (Client Credentials)
+### Scenario 1: Application Authentication (Client Credentials)
 
 **Use Case**: An application authenticates itself to access APIs (no user involved).
 
@@ -145,7 +115,7 @@ curl -X POST http://localhost:9000/oauth2/token \
   -d "scope=api.read api.write"
 ```
 
-### Scenario 3: Authorization Code Flow (Web Applications)
+### Scenario 2: Authorization Code Flow (Web Applications)
 
 **Use Case**: Most secure flow for web applications with a backend.
 
@@ -252,6 +222,39 @@ curl -X POST http://localhost:9000/oauth2/revoke \
 3. Send requests with appropriate parameters
    
 
+
+### 
+```
+1. Postman sends POST to /oauth2/token:
+   Authorization: Basic app-client:app-client-secret
+   Body: grant_type=client_credentials&scope=api.read
+
+2. Request hits Filter Chain #1 (@Order(1))
+
+3. OAuth2ClientAuthenticationFilter extracts credentials
+
+4. Validates client against RegisteredClientRepository:
+  - Is "app-client" registered? ✅
+  - Does password match? ✅
+
+5. Checks grant type:
+  - Does app-client support client_credentials? ✅
+
+6. Validates scopes:
+  - Is "api.read" registered for app-client? ✅
+
+7. Generates JWT token:
+  - Creates payload with claims
+  - Signs with PRIVATE key from jwkSource
+
+8. Returns response:
+   {
+   "access_token": "eyJ...",
+   "token_type": "Bearer",
+   "expires_in": 3600,
+   "scope": "api.read"
+   }
+```
 ### Decode JWT Tokens
 
 Visit [jwt.io](https://jwt.io) and paste your access token to see its contents.
