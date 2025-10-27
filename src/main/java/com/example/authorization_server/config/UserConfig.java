@@ -37,7 +37,6 @@ public class UserConfig {
                 .username("admin")
                 .password(passwordEncoder().encode("adminpass123"))
                 .roles("USER", "ADMIN")
-                .authorities("ADMIN")
                 .build();
 
         // Another regular user
